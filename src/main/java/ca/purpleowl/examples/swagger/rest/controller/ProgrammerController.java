@@ -12,13 +12,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.Resource;
 import org.springframework.hateoas.Resources;
-import org.springframework.hateoas.core.EmbeddedWrapper;
 import org.springframework.hateoas.core.EmbeddedWrappers;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -40,7 +40,7 @@ public class ProgrammerController {
         this.programmerRepository = programmerRepository;
     }
 
-    @ApiOperation(value = "Retrieves a programmer's profile from the DB", response = ProgrammerAsset.class)
+    @ApiOperation(value = "Retrieves a programmer's profile from the persistence mechanism", response = ProgrammerAsset.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successful retrieval of Programmer Profile", response = ProgrammerAsset.class),
             @ApiResponse(code = 400, message = "The Programmer ID was invalid or not supplied"),
@@ -65,21 +65,21 @@ public class ProgrammerController {
             @ApiResponse(code = 500, message = "Internal error")
     })
     @RequestMapping(method = RequestMethod.GET, produces = "application/hal+json")
-    public ResponseEntity<Resources<EmbeddedWrapper>> retrieveAllProgrammers(@RequestParam(name = "teamId", required = false) Long teamId) {
+    public ResponseEntity<Resources> retrieveAllProgrammers(@RequestParam(name = "teamId", required = false) Long teamId) {
         log.info("about to try to list programmers");
         log.info("teamId = " + teamId);
         EmbeddedWrappers wrappers = new EmbeddedWrappers(true);
 
-        List<EmbeddedWrapper> programmers;
+        List<Resource> programmers;
         if(teamId == null) {
             programmers = programmerRepository.findAll()
                                               .stream()
-                                              .map(programmer -> wrappers.wrap(entityToAsset(programmer)))
+                                              .map(this::entityToResource)
                                               .collect(Collectors.toList());
         } else {
             programmers = programmerRepository.findAllByTeamId(teamId)
                                               .stream()
-                                              .map(programmer -> wrappers.wrap(entityToAsset(programmer)))
+                                              .map(this::entityToResource)
                                               .collect(Collectors.toList());
         }
 
@@ -90,11 +90,11 @@ public class ProgrammerController {
                         .expand()
         );
 
-        Resources<EmbeddedWrapper> resources;
+        Resources resources;
 
         if(programmers.isEmpty()) {
             log.info("returning empty list");
-            //We have to do that pain in the ass thing where we still return the list even though it's empty.
+            //We have to do that pain in the ass thing so that we still return the list even though it's empty.
             resources =
                     new Resources<>(Collections.singletonList(wrappers.emptyCollectionOf(ProgrammerAsset.class)),
                                     selfLink);
@@ -113,25 +113,22 @@ public class ProgrammerController {
             @ApiResponse(code = 500, message = "Internal Error")
     })
     @RequestMapping(method = RequestMethod.POST, consumes = "application/json", produces = "application/hal+json")
-    public ResponseEntity<ProgrammerAsset> createProgrammer(ProgrammerAsset programmerAsset) {
-        Programmer programmer = new Programmer();
-        programmer.setName(programmerAsset.getName());
-        programmer.setDateHired(LocalDate.parse(programmerAsset.getDateHired(), DateTimeFormatter.ISO_LOCAL_DATE));
+    public ResponseEntity<Resource> createProgrammer(@RequestBody ProgrammerAsset programmerAsset) {
 
-        programmer = programmerRepository.save(programmer);
+        Programmer savedProgrammer = programmerRepository.save(assetToEntity(programmerAsset));
 
-        ProgrammerAsset returnMe = entityToAsset(programmer);
+        Resource returnMe = entityToResource(savedProgrammer);
 
         return ResponseEntity.ok(returnMe);
     }
 
-    private ProgrammerAsset entityToAsset(Programmer programmer) {
-        ProgrammerAsset asset = new ProgrammerAsset();
-        asset.setName(programmer.getName());
-        asset.setProgrammerId(programmer.getProgrammerId());
-        asset.setDateHired(DateTimeFormatter.ISO_LOCAL_DATE.format(programmer.getDateHired()));
+    private Resource entityToResource(Programmer programmer) {
+        List<Link> links = new ArrayList<>();
+
+        ProgrammerAsset asset = entityToAsset(programmer);
+
         if(programmer.getProgrammerId() != null) {
-            asset.add(
+            links.add(
                     linkTo(methodOn(ProgrammerController.class).retrieveProgrammer(programmer.getProgrammerId()))
                             .withSelfRel()
                             .expand()
@@ -139,16 +136,35 @@ public class ProgrammerController {
         }
 
         if(programmer.getTeam() != null) {
+            links.add(
+                    linkTo(methodOn(TeamController.class).retrieveTeam(programmer.getTeam().getTeamId()))
+                            .withRel("team")
+                            .expand()
+            );
+        }
+
+        return new Resource<>(asset, links);
+    }
+
+    private ProgrammerAsset entityToAsset(Programmer programmer) {
+        ProgrammerAsset asset = new ProgrammerAsset();
+        asset.setName(programmer.getName());
+        asset.setProgrammerId(programmer.getProgrammerId());
+        asset.setDateHired(DateTimeFormatter.ISO_LOCAL_DATE.format(programmer.getDateHired()));
+
+        if(programmer.getTeam() != null) {
             asset.setTeamId(programmer.getTeam().getTeamId());
             asset.setTeamName(programmer.getTeam().getName());
-            asset.add(
-                    linkTo(methodOn(TeamController.class).retrieveTeam(programmer.getTeam().getTeamId()))
-                        .withRel("team")
-                        .expand()
-            );
         }
 
         return asset;
     }
 
+    private Programmer assetToEntity(ProgrammerAsset asset) {
+        Programmer entity = new Programmer();
+        entity.setName(asset.getName());
+        entity.setDateHired(LocalDate.parse(asset.getDateHired()));
+
+        return entity;
+    }
 }

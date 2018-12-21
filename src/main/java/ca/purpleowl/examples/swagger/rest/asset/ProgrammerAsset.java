@@ -2,13 +2,10 @@ package ca.purpleowl.examples.swagger.rest.asset;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import lombok.Getter;
-import lombok.Setter;
-import org.springframework.hateoas.ResourceSupport;
+import lombok.Data;
 
-@Getter
-@Setter
-public class ProgrammerAsset extends ResourceSupport {
+@Data
+public class ProgrammerAsset {
     private Long programmerId;
     private String name;
     private String dateHired;

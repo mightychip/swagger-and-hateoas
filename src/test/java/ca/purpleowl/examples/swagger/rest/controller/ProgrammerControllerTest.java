@@ -3,6 +3,7 @@ package ca.purpleowl.examples.swagger.rest.controller;
 import ca.purpleowl.examples.swagger.jpa.entity.Programmer;
 import ca.purpleowl.examples.swagger.jpa.entity.Team;
 import ca.purpleowl.examples.swagger.jpa.repository.ProgrammerRepository;
+import ca.purpleowl.examples.swagger.rest.asset.ProgrammerAsset;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,13 +15,20 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static ca.purpleowl.examples.swagger.rest.controller.ControllerTestUtil.loadFromFile;
+import static ca.purpleowl.examples.swagger.utils.TestModelInflater.buildMockProgrammer;
 import static ca.purpleowl.examples.swagger.utils.TestModelInflater.buildMockTeam;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -117,6 +125,21 @@ public class ProgrammerControllerTest {
 
     @Test
     public void testSaveProgrammer() {
+        ProgrammerAsset asset = new ProgrammerAsset();
+        asset.setName("Name");
+        asset.setDateHired(DateTimeFormatter.ISO_LOCAL_DATE.format(LocalDate.of(2014,12,14)));
 
+        Programmer entity = buildMockProgrammer("Name", 1L);
+        entity.setDateHired(LocalDate.of(2014,12,14));
+
+        when(mockRepository.save(any(Programmer.class))).thenReturn(entity);
+
+        ResponseEntity<String> response = testRestTemplate.postForEntity("/programmer", asset, String.class);
+
+        String expectedJson = loadFromFile(String.format(JSON_PATH_TEMPLATE, "saved-programmer.json"))
+                .replaceAll("localServerPort", localServerPort.toString());
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(expectedJson, response.getBody());
     }
 }
