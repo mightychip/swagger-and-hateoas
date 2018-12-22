@@ -1,1 +1,1 @@
-{"programmerId":420,"name":"programmer1","dateHired":"2018-12-21","_links":{"self":{"href":"http://localhost:localServerPort/programmer/420"}}}
+{"programmerId":420,"name":"programmer1","dateHired":"2001-01-01","teamId":1,"teamName":"name1","_links":{"self":{"href":"http://localhost:localServerPort/programmer/420"},"team":{"href":"http://localhost:localServerPort/team/1"}}}

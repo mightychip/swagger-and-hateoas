@@ -4,7 +4,6 @@ import ca.purpleowl.examples.swagger.jpa.entity.Programmer;
 import ca.purpleowl.examples.swagger.jpa.entity.Team;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -14,7 +13,7 @@ public class TestModelInflater {
         team.setName(name);
         team.setTeamId(teamId);
         team.setTeamFocus(teamFocus);
-        team.setLastStandUp(LocalDateTime.now());
+        team.setLastStandUp(LocalDate.of(2001, 1, 1).atStartOfDay());
 
         AtomicLong idCounter = new AtomicLong(startingId==null?1L:startingId);
 
@@ -31,7 +30,7 @@ public class TestModelInflater {
         Programmer programmer = new Programmer();
         programmer.setName(name);
         programmer.setProgrammerId(programmerId);
-        programmer.setDateHired(LocalDate.now());
+        programmer.setDateHired(LocalDate.of(2001,1,1));
 
         return programmer;
     }

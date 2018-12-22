@@ -52,8 +52,7 @@ public class ProgrammerController {
         Optional<Programmer> programmer = programmerRepository.findById(programmerId);
 
         if(programmer.isPresent()) {
-            ProgrammerAsset asset = entityToAsset(programmer.get());
-            return ResponseEntity.ok(new Resource<>(asset));
+            return ResponseEntity.ok(entityToResource(programmer.get()));
         }
 
         return ResponseEntity.notFound().build();
