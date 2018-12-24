@@ -12,3 +12,8 @@ spring:
       ddl-auto: create-drop
     database: h2
 
+logging:
+  level:
+    root: INFO
+    ca.purpleowl.examples: TRACE
+

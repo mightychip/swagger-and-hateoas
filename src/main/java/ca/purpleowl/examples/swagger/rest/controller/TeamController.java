@@ -1,14 +1,13 @@
 package ca.purpleowl.examples.swagger.rest.controller;
 
-import ca.purpleowl.examples.swagger.jpa.entity.Programmer;
 import ca.purpleowl.examples.swagger.jpa.entity.Team;
-import ca.purpleowl.examples.swagger.jpa.repository.ProgrammerRepository;
-import ca.purpleowl.examples.swagger.jpa.repository.TeamRepository;
 import ca.purpleowl.examples.swagger.rest.asset.TeamAsset;
+import ca.purpleowl.examples.swagger.service.TeamService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.Resource;
@@ -17,30 +16,31 @@ import org.springframework.hateoas.core.EmbeddedWrappers;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
 
-
+@Log
 @Api(value = "team",
      description = "Endpoint for managing Teams")
 @RestController
 @RequestMapping("/team")
 public class TeamController {
-    private final TeamRepository teamRepository;
-    private final ProgrammerRepository programmerRepository;
+    private static final String RETRIEVE_ALL_TEAMS = "retrieveAllTeams";
+    private static final String RETRIEVE_TEAM = "retrieveTeam";
+    private static final String CREATE_TEAM = "createTeam";
+    private static final String ADD_PROGRAMMER_TO_TEAM = "addProgrammerToTeam";
+    private static final String WRAP_ASSET = "wrapAsset";
+
+    private final TeamService teamService;
 
     @Autowired
-    public TeamController(TeamRepository teamRepository, ProgrammerRepository programmerRepository) {
-        this.teamRepository = teamRepository;
-        this.programmerRepository = programmerRepository;
+    public TeamController(TeamService teamService) {
+        this.teamService = teamService;
     }
 
     @ApiOperation(value = "Retrieves all teams from the persistence mechanism", response = Team[].class)
@@ -50,13 +50,13 @@ public class TeamController {
     })
     @RequestMapping(method = RequestMethod.GET, produces = "application/hal+json")
     public ResponseEntity<Resources> retrieveAllTeams() {
+        log.entering(TeamController.class.getName(), RETRIEVE_ALL_TEAMS);
         EmbeddedWrappers wrappers = new EmbeddedWrappers(true);
 
-        List<Resource> teams =
-                teamRepository.findAll()
-                              .stream()
-                              .map(this::entityToResource)
-                              .collect(Collectors.toList());
+        List<Resource> teams = teamService.findAllTeams()
+                                          .stream()
+                                          .map(this::wrapAsset)
+                                          .collect(Collectors.toList());
 
         List<Link> selfLink = Collections.singletonList(
                 linkTo(methodOn(TeamController.class).retrieveAllTeams()).withSelfRel()
@@ -73,6 +73,7 @@ public class TeamController {
             resources = new Resources<>(teams, selfLink);
         }
 
+        log.exiting(TeamController.class.getName(), RETRIEVE_ALL_TEAMS, resources);
         return ResponseEntity.ok(resources);
     }
 
@@ -83,13 +84,18 @@ public class TeamController {
             @ApiResponse(code = 500, message = "Internal error")
     })
     @RequestMapping(path = "/{teamId}", method = RequestMethod.GET, produces = "application/hal+json")
-    public ResponseEntity<Resource> retrieveTeam(@PathVariable("teamId") Long teamId) {
-        Optional<Team> team = teamRepository.findById(teamId);
+    public ResponseEntity<Resource> retrieveTeam(@PathVariable("teamId") long teamId) {
+        log.entering(TeamController.class.getName(), RETRIEVE_TEAM, teamId);
+        TeamAsset team = teamService.findTeam(teamId);
 
-        if(team.isPresent()) {
-            return ResponseEntity.ok(entityToResource(team.get()));
+        if(team != null) {
+            Resource returnMe = wrapAsset(team);
+
+            log.exiting(TeamController.class.getName(), RETRIEVE_TEAM, returnMe);
+            return ResponseEntity.ok(returnMe);
         }
 
+        log.exiting(TeamController.class.getName(), RETRIEVE_TEAM, 404);
         return ResponseEntity.notFound().build();
     }
 
@@ -99,11 +105,13 @@ public class TeamController {
             @ApiResponse(code = 500, message = "Internal error")
     })
     @RequestMapping(method = RequestMethod.POST, produces = "application/hal+json")
-    public ResponseEntity<Resource> saveTeam(@RequestBody TeamAsset asset) {
-        Team savedTeam = teamRepository.save(assetToEntity(asset));
+    public ResponseEntity<Resource> createTeam(@RequestBody TeamAsset teamAsset) {
+        log.entering(TeamController.class.getName(), CREATE_TEAM, teamAsset);
+        TeamAsset savedTeam = teamService.saveTeam(teamAsset);
 
-        Resource returnMe = entityToResource(savedTeam);
+        Resource returnMe = wrapAsset(savedTeam);
 
+        log.exiting(TeamController.class.getName(), CREATE_TEAM, returnMe);
         return ResponseEntity.ok(returnMe);
     }
 
@@ -116,50 +124,40 @@ public class TeamController {
     @RequestMapping(path = "/{teamId}/add-programmer/{programmerId}", method = RequestMethod.POST, produces = "application/hal+json")
     public ResponseEntity addProgrammerToTeam(@PathVariable("teamId") long teamId,
                                               @PathVariable("programmerId") long programmerId) {
-        Optional<Team> maybeTeam = teamRepository.findById(teamId);
-        Optional<Programmer> maybeProgrammer = programmerRepository.findById(programmerId);
+                                                                    //TODO Well, that's hideous.  Is there not a better way?
+        log.entering(TeamController.class.getName(), ADD_PROGRAMMER_TO_TEAM, new Object[]{teamId, programmerId});
 
-        if(maybeTeam.isPresent() && maybeProgrammer.isPresent()) {
-            Team team = maybeTeam.get();
-            Programmer programmer = maybeProgrammer.get();
-            team.addProgrammer(programmer);
-            teamRepository.save(team);
+        if(teamService.addProgrammerToTeam(programmerId, teamId)) {
+
+            log.exiting(TeamController.class.getName(), ADD_PROGRAMMER_TO_TEAM, 200);
             return ResponseEntity.ok().build();
-        }
+        } else {
 
-        return ResponseEntity.notFound().build();
+            log.exiting(TeamController.class.getName(), ADD_PROGRAMMER_TO_TEAM, 404);
+            return ResponseEntity.notFound().build();
+        }
     }
 
-    private Resource entityToResource(Team team) {
-        TeamAsset asset = entityToAsset(team);
+    private Resource wrapAsset(TeamAsset asset) {
+        log.entering(TeamController.class.getName(), WRAP_ASSET, asset);
         List<Link> links = new ArrayList<>();
-        if(team.getTeamId() != null) {
+
+        if(asset.getTeamId() != null) {
             links.add(
-                    linkTo(methodOn(ProgrammerController.class).retrieveAllProgrammers(team.getTeamId()))
+                    linkTo(methodOn(TeamController.class).retrieveTeam(asset.getTeamId()))
+                            .withSelfRel()
+            );
+
+            links.add(
+                    linkTo(methodOn(ProgrammerController.class).retrieveAllProgrammers(asset.getTeamId()))
                             .withRel("programmers")
                             .expand()
             );
         }
-        return new Resource<>(asset, links);
-    }
 
-    private TeamAsset entityToAsset(Team team) {
-        TeamAsset asset = new TeamAsset();
-        asset.setTeamId(team.getTeamId());
-        asset.setName(team.getName());
-        asset.setTeamFocus(team.getTeamFocus());
-        asset.setLastStandUp(DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(team.getLastStandUp()));
+        Resource returnMe = new Resource<>(asset, links);
 
-        return asset;
-    }
-
-    private Team assetToEntity(TeamAsset asset) {
-        Team entity = new Team();
-        entity.setTeamId(asset.getTeamId());
-        entity.setName(asset.getName());
-        entity.setTeamFocus(asset.getTeamFocus());
-        entity.setLastStandUp(LocalDateTime.parse(asset.getLastStandUp()));
-
-        return entity;
+        log.exiting(TeamController.class.getName(), WRAP_ASSET, returnMe);
+        return returnMe;
     }
 }
