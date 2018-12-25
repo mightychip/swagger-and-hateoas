@@ -16,8 +16,8 @@ public class SwaggerConfig {
 
     /**
      * A we bit o' swagger config.  We could, and in production SHOULD, be more specific than this, but I'm doing this
-     * quickly to provide an example... I may come back and lock this down with security and stuff later for more
-     * awesome examples.
+     * quickly to provide an example... I will be making a subsequent post about Swagger2 security where I'll lock this
+     * down appropriately.
      */
     @Bean
     public Docket api() {
@@ -25,7 +25,7 @@ public class SwaggerConfig {
                 //Yeah yeah... fuck you, too, Swagger.  Do what I want.
                 .directModelSubstitute(ResponseEntity.class, Void.class)
                 .select()
-                .apis(RequestHandlerSelectors.any())
+                .apis(RequestHandlerSelectors.basePackage("ca.purpleowl.examples.swagger"))
                 .paths(PathSelectors.any())
                 .build();
     }

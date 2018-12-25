@@ -2,10 +2,7 @@ package ca.purpleowl.examples.swagger.rest.controller;
 
 import ca.purpleowl.examples.swagger.rest.asset.ProgrammerAsset;
 import ca.purpleowl.examples.swagger.service.ProgrammerService;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.*;
 import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.Link;
@@ -30,8 +27,11 @@ import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
  * contained here.
  */
 @Log
-@Api(value = "programmer",
-     description = "Endpoint for managing Programmers")
+@Api(tags = {"Programmer"},
+     description = "Endpoint for managing Programmers",
+     produces = "application/hal+json",
+     consumes = "application/json",
+     protocols = "http")
 @RestController
 @RequestMapping(value = "/programmer")
 public class ProgrammerController {
@@ -61,15 +61,34 @@ public class ProgrammerController {
      * @param programmerId - A numeric representation fo the ID of the desired Programmer profile
      * @return A ResponseEntity containing a relevant Status Code and a body containing a JSON representation of the Programmer profile
      */
-    @ApiOperation(value = "Retrieves a programmer's profile from the persistence mechanism", response = ProgrammerAsset.class)
+    @ApiOperation(value = "Retrieves a programmer's profile from the persistence mechanism",
+                  notes = "Accepts a numeric ID as a path parameter which should represent the ID of a programmer " +
+                          "profile stored in the mechanism.  If the record exists, a JSON representation of that " +
+                          "profile will be returned, along with the appropriate Links: a link labelled \"self\" for " +
+                          "this endpoint, as well as a link labelled \"team\" for the Team endpoint if the " +
+                          "Programmer profile is associated with a Team.",
+                  response = ProgrammerAsset.class,
+                  httpMethod = "GET",
+                  produces = "application/hal+json")
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successful retrieval of Programmer Profile", response = ProgrammerAsset.class),
-            @ApiResponse(code = 400, message = "The Programmer ID was invalid or not supplied"),
-            @ApiResponse(code = 404, message = "Programmer profile was not found"),
-            @ApiResponse(code = 500, message = "Internal error")
+            @ApiResponse(code = 200,
+                         message = "Successful retrieval of Programmer Profile",
+                         response = ProgrammerAsset.class),
+            @ApiResponse(code = 400,
+                         message = "The Programmer ID was invalid or not supplied"),
+            @ApiResponse(code = 404,
+                         message = "Programmer profile was not found"),
+            @ApiResponse(code = 500,
+                         message = "Internal error")
     })
     @RequestMapping(value = "/{programmerId}", method = RequestMethod.GET, produces = "application/hal+json")
-    public ResponseEntity<Resource> retrieveProgrammer(@PathVariable("programmerId") Long programmerId) {
+    public ResponseEntity<Resource> retrieveProgrammer(
+            @PathVariable("programmerId")
+            @ApiParam(value = "ID of the desired Programmer profile",
+                      allowableValues = "range[1, infinity]",
+                      allowEmptyValue = true,
+                      required = true)
+            Long programmerId) {
         log.entering(ProgrammerController.class.getName(), RETRIEVE_PROGRAMMER, programmerId);
         ProgrammerAsset asset = programmerService.findProgrammer(programmerId);
 
@@ -97,13 +116,31 @@ public class ProgrammerController {
      * @param teamId - An optional parameter representing the numeric ID of the Team for which all programmers should be listed.  If not used, null should be provided.
      * @return A ResponseEntity object containing a relevant Status Code and a JSON representation of the desired Programmer profiles.
      */
-    @ApiOperation(value = "Retrieves all programmers from the persistence mechanism", response = ProgrammerAsset[].class)
+    @ApiOperation(value = "Retrieves all programmers from the persistence mechanism",
+                  notes = "Accepts an optional numeric ID as a query parameter.  If provided, this represents the " +
+                          "ID of the team for which all Programmer profiles should be listed.  If no such parameter " +
+                          "is provided, then all Programmer profiles within the system are returned.  These are " +
+                          "wrapped within Resource wrappers and returned within a ResponseEntity which provides the " +
+                          "Status Code and any other relevant information regarding the success or failure of the " +
+                          "request.",
+                  response = ProgrammerAsset[].class,
+                  httpMethod = "GET",
+                  produces = "application/hal+json")
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successful retrieval of all programmer profiles", response = ProgrammerAsset[].class),
-            @ApiResponse(code = 500, message = "Internal error")
+            @ApiResponse(code = 200,
+                         message = "Successful retrieval of all programmer profiles",
+                         response = ProgrammerAsset[].class),
+            @ApiResponse(code = 500,
+                         message = "Internal error")
     })
     @RequestMapping(method = RequestMethod.GET, produces = "application/hal+json")
-    public ResponseEntity<Resources> retrieveAllProgrammers(@RequestParam(name = "teamId", required = false) Long teamId) {
+    public ResponseEntity<Resources> retrieveAllProgrammers(
+            @RequestParam(name = "teamId",
+                          required = false)
+            @ApiParam(value = "Optional ID of the Team for which all Programmer profiles should be listed",
+                      allowableValues = "range[1, infinity]",
+                      allowEmptyValue = true)
+            Long teamId) {
         log.entering(ProgrammerController.class.getName(), RETRIEVE_ALL_PROGRAMMERS, teamId);
 
         List<Resource> programmers;
@@ -159,14 +196,32 @@ public class ProgrammerController {
      * @param programmerAsset - A ProgrammerAsset JSON Asset serialized from the body of the request.
      * @return A ProgrammerAsset wrapped in a Resource, loaded into the body of a ResponseEntity.
      */
-    @ApiOperation(value = "Saves a programmer's profile to the persistence mechanism.", response = ProgrammerAsset.class)
+    @ApiOperation(value = "Saves a programmer's profile to the persistence mechanism.",
+                  notes = "Accepts a JSON representation of a Programmer's profile, saves it to the Persistence " +
+                          "Mechanism, and then returns an updated JSON representation of that Programmer Profile, " +
+                          "including the new ID if the profile was transmitted without an ID.  Transmitting a " +
+                          "profile without an ID indicates that it is a new record to be saved to the Persistence " +
+                          "Mechanism.",
+                  response = ProgrammerAsset.class,
+                  httpMethod = "POST",
+                  produces = "application/hal+json",
+                  consumes = "application/json")
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully saved the Programmer's profile", response = ProgrammerAsset.class),
-            @ApiResponse(code = 400, message = "The provided profile was invalid or incomplete."),
-            @ApiResponse(code = 500, message = "Internal Error")
+            @ApiResponse(code = 200,
+                         message = "Successfully saved the Programmer's profile",
+                         response = ProgrammerAsset.class),
+            @ApiResponse(code = 400,
+                         message = "The provided profile was invalid or incomplete."),
+            @ApiResponse(code = 500,
+                         message = "Internal Error")
     })
-    @RequestMapping(method = RequestMethod.POST, consumes = "application/json", produces = "application/hal+json")
-    public ResponseEntity<Resource> createProgrammer(@RequestBody ProgrammerAsset programmerAsset) {
+    @RequestMapping(method = RequestMethod.POST,
+                    consumes = "application/json",
+                    produces = "application/hal+json")
+    public ResponseEntity<Resource> createProgrammer(
+            @RequestBody
+            @ApiParam(value = "A JSON Representation of the Programmer profile to be saved to the persistence mechanism")
+            ProgrammerAsset programmerAsset) {
         log.entering(ProgrammerController.class.getName(), CREATE_PROGRAMMER, programmerAsset);
         ProgrammerAsset savedProgrammer = programmerService.saveProgrammer(programmerAsset);
 

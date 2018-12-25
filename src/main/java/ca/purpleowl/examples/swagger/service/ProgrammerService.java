@@ -14,6 +14,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * The purpose of this is just to loosen the coupling between the JPA Model and the REST Endpoints.  I always like to
+ * keep the two separate.  This also helps us pull a bunch of logic away from the REST Controller.  It should only
+ * really be making decisions on what the Status Code is, and adding hypermedia links to the returned data, obviously.
+ */
 @Log
 @Service
 public class ProgrammerService {
