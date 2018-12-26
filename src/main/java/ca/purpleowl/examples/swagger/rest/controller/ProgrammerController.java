@@ -2,15 +2,25 @@ package ca.purpleowl.examples.swagger.rest.controller;
 
 import ca.purpleowl.examples.swagger.rest.asset.ProgrammerAsset;
 import ca.purpleowl.examples.swagger.service.ProgrammerService;
-import io.swagger.annotations.*;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.Resource;
 import org.springframework.hateoas.Resources;
 import org.springframework.hateoas.core.EmbeddedWrappers;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,10 +65,10 @@ public class ProgrammerController {
     /**
      * Accepts a numeric ID as a path parameter which should represent the ID of a programmer profile stored in the
      * persistence mechanism.  If the record exists, a JSON representation of that profile will be returned, along with
-     * the appropriate Links: a link labelled "self" for this endpoint, as well as a link labelled "team" for the Team
-     * endpoint if the Programmer profile is associated with a Team.
+     * the appropriate Hypermedia links: a link labelled "self" for this endpoint, as well as a link labelled "team" for
+     * the Team endpoint if the Programmer profile is associated with a Team.
      *
-     * @param programmerId - A numeric representation fo the ID of the desired Programmer profile
+     * @param programmerId - A numeric representation of the ID of the desired Programmer profile
      * @return A ResponseEntity containing a relevant Status Code and a body containing a JSON representation of the Programmer profile
      */
     @ApiOperation(value = "Retrieves a programmer's profile from the persistence mechanism",
@@ -86,6 +96,7 @@ public class ProgrammerController {
             @PathVariable("programmerId")
             @ApiParam(value = "ID of the desired Programmer profile",
                       allowableValues = "range[1, infinity]",
+                      //Actually doesn't refer to the value being empty, but allowing the "default value" to be empty.
                       allowEmptyValue = true,
                       required = true)
             Long programmerId) {
@@ -103,7 +114,7 @@ public class ProgrammerController {
             return ResponseEntity.ok(returnMe);
         }
 
-        log.exiting(ProgrammerController.class.getName(), RETRIEVE_PROGRAMMER, 404);
+        log.exiting(ProgrammerController.class.getName(), RETRIEVE_PROGRAMMER, HttpStatus.NOT_FOUND);
         return ResponseEntity.notFound().build();
     }
 
@@ -193,15 +204,13 @@ public class ProgrammerController {
      * wraps the wrapper placed around the ProgrammerAsset object.  There's a lot of wrapping here, mainly to satisfy
      * some weirdness in my implementation of the Swagger2 framework.
      *
-     * @param programmerAsset - A ProgrammerAsset JSON Asset serialized from the body of the request.
+     * @param programmerAsset - A ProgrammerAsset deserialized from the body of the request.
      * @return A ProgrammerAsset wrapped in a Resource, loaded into the body of a ResponseEntity.
      */
     @ApiOperation(value = "Saves a programmer's profile to the persistence mechanism.",
                   notes = "Accepts a JSON representation of a Programmer's profile, saves it to the Persistence " +
                           "Mechanism, and then returns an updated JSON representation of that Programmer Profile, " +
-                          "including the new ID if the profile was transmitted without an ID.  Transmitting a " +
-                          "profile without an ID indicates that it is a new record to be saved to the Persistence " +
-                          "Mechanism.",
+                          "including the ID of the newly saved profile.",
                   response = ProgrammerAsset.class,
                   httpMethod = "POST",
                   produces = "application/hal+json",
@@ -220,7 +229,7 @@ public class ProgrammerController {
                     produces = "application/hal+json")
     public ResponseEntity<Resource> createProgrammer(
             @RequestBody
-            @ApiParam(value = "A JSON Representation of the Programmer profile to be saved to the persistence mechanism")
+            @ApiParam(value = "A JSON representation of the Programmer profile to be saved to the persistence mechanism")
             ProgrammerAsset programmerAsset) {
         log.entering(ProgrammerController.class.getName(), CREATE_PROGRAMMER, programmerAsset);
         ProgrammerAsset savedProgrammer = programmerService.saveProgrammer(programmerAsset);
@@ -235,8 +244,8 @@ public class ProgrammerController {
      * Warps a ProgrammerAsset in a Resource wrapper and also adds the appropriate Links to the endpoint to read the
      * Programmer's profile and the endpoint to read the Programmer's Team's profile.
      *
-     * @param asset - A JPA Entity describing a Programmer profile.
-     * @return A Resource loaded with the JSON class (ProgrammerAsset) and its associated links.
+     * @param asset - A ProgrammerAsset describing a Programmer profile.
+     * @return A Resource wrapping the ProgrammerAsset and populated with appropriate Hypermedia links.
      */
     private Resource wrapAsset(ProgrammerAsset asset) {
         log.entering(ProgrammerController.class.getName(), WRAP_ASSET, asset);
@@ -244,20 +253,16 @@ public class ProgrammerController {
         List<Link> links = new ArrayList<>();
 
         if(asset.getProgrammerId() != null) {
-            links.add(
-                    linkTo(methodOn(ProgrammerController.class).retrieveProgrammer(asset.getProgrammerId()))
-                            //Actually, I don't know if this is necessarily always right...
+            links.add(linkTo(methodOn(ProgrammerController.class).retrieveProgrammer(asset.getProgrammerId()))
+                            //Actually, I don't know if this is necessarily always right (ie. being a selfRel)...
                             .withSelfRel()
-                            .expand()
-            );
+                            .expand());
         }
 
         if(asset.getTeamId() != null) {
-            links.add(
-                    linkTo(methodOn(TeamController.class).retrieveTeam(asset.getTeamId()))
+            links.add(linkTo(methodOn(TeamController.class).retrieveTeam(asset.getTeamId()))
                             .withRel("team")
-                            .expand()
-            );
+                            .expand());
         }
 
         Resource returnMe = new Resource<>(asset, links);

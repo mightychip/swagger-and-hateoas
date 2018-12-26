@@ -17,6 +17,6 @@ public interface ProgrammerRepository extends JpaRepository<Programmer, Long> {
      * @param teamId - The ID of the Team from which all Programmer profiles should be returned.
      * @return A List of Programmer JPA Entities representing the Programmer profiles from the specified Team.
      */
-    @Query("SELECT p FROM Programmer p WHERE p.team.teamId = :teamId ORDER BY p.name")
+    @Query("SELECT p FROM Programmer p WHERE p.team.id = :teamId ORDER BY p.name")
     List<Programmer> findAllByTeamId(@Param("teamId") long teamId);
 }

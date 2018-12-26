@@ -1,20 +1,20 @@
 package ca.purpleowl.examples.swagger.jpa.entity;
 
 import lombok.Data;
-import org.hibernate.annotations.GenericGenerator;
+import lombok.EqualsAndHashCode;
 
-import javax.persistence.*;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
 import java.time.LocalDate;
 
-@Entity
-@Table
 @Data
-public class Programmer {
-    @Id
-    @GeneratedValue(generator = "increment")
-    @GenericGenerator(name = "increment", strategy = "increment")
-    private Long programmerId;
-
+@Table
+@Entity
+@EqualsAndHashCode(callSuper = true) //Some additional instructions are needed here.
+public class Programmer extends AbstractEntity {
     @Column
     private String name;
 

@@ -15,6 +15,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * This class exists purely to decouple the JPA model from the REST Controllers.  They should be unaware of the
+ * implementation for the persistence layer.  Swagger2 also introduces some significant bloat from Annotations, so it's
+ * good to move logic from that controller back to a Service class for clarity if nothing else.
+ */
 @Log
 @Service
 public class TeamService {
@@ -61,7 +66,7 @@ public class TeamService {
     }
 
     public TeamAsset saveTeam(TeamAsset asset) {
-        log.entering(TeamAsset.class.getName(), SAVE_TEAM, asset);
+        log.entering(TeamService.class.getName(), SAVE_TEAM, asset);
         Team team = assetToEntity(asset);
 
         team = teamRepository.save(team);
@@ -73,25 +78,30 @@ public class TeamService {
     }
 
     public boolean addProgrammerToTeam(long programmerId, long teamId) {
+        log.entering(TeamService.class.getName(), ADD_PROGRAMMER_TO_TEAM, new Object[]{programmerId, teamId});
         Optional<Team> maybeTeam = teamRepository.findById(teamId);
         Optional<Programmer> maybeProgrammer = programmerRepository.findById(programmerId);
+
+        boolean returnMe = false;
 
         if(maybeTeam.isPresent() && maybeProgrammer.isPresent()) {
             Team team = maybeTeam.get();
             Programmer programmer = maybeProgrammer.get();
             team.addProgrammer(programmer);
             teamRepository.save(team);
+            returnMe = true;
         }
 
+        log.exiting(TeamService.class.getName(), ADD_PROGRAMMER_TO_TEAM, returnMe);
         //I'm just going to assume that this is always an indicator of whether or not we were successful.
-        return (maybeTeam.isPresent() && maybeProgrammer.isPresent());
+        return returnMe;
     }
 
 
     private static TeamAsset entityToAsset(Team team) {
         log.entering(TeamService.class.getName(), ENTITY_TO_ASSET, team);
         TeamAsset asset = new TeamAsset();
-        asset.setTeamId(team.getTeamId());
+        asset.setTeamId(team.getId());
         asset.setName(team.getName());
         asset.setTeamFocus(team.getTeamFocus());
         asset.setLastStandUp(DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(team.getLastStandUp()));
@@ -103,7 +113,7 @@ public class TeamService {
     private static Team assetToEntity(TeamAsset asset) {
         log.entering(TeamService.class.getName(), ASSET_TO_ENTITY, asset);
         Team entity = new Team();
-        entity.setTeamId(asset.getTeamId());
+        entity.setId(asset.getTeamId());
         entity.setName(asset.getName());
         entity.setTeamFocus(asset.getTeamFocus());
         entity.setLastStandUp(LocalDateTime.parse(asset.getLastStandUp()));

@@ -18,7 +18,12 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static ca.purpleowl.examples.swagger.rest.controller.ControllerTestUtil.loadFromFile;
 import static ca.purpleowl.examples.swagger.utils.TestModelInflater.buildMockProgrammer;
@@ -151,7 +156,7 @@ public class TeamControllerTest  {
         entity.setLastStandUp(LocalDate.of(2001,1,1).atStartOfDay());
         entity.setTeamFocus("Java");
         entity.setName("name");
-        entity.setTeamId(1L);
+        entity.setId(1L);
 
         when(mockTeamRepo.save(any(Team.class))).thenReturn(entity);
 

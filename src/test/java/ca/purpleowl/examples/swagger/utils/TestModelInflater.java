@@ -11,7 +11,7 @@ public class TestModelInflater {
     public static Team buildMockTeam(Long teamId, String name, String teamFocus, Long startingId, String... programmerNames) {
         Team team = new Team();
         team.setName(name);
-        team.setTeamId(teamId);
+        team.setId(teamId);
         team.setTeamFocus(teamFocus);
         team.setLastStandUp(LocalDate.of(2001, 1, 1).atStartOfDay());
 
@@ -29,7 +29,7 @@ public class TestModelInflater {
     public static Programmer buildMockProgrammer(String name, Long programmerId) {
         Programmer programmer = new Programmer();
         programmer.setName(name);
-        programmer.setProgrammerId(programmerId);
+        programmer.setId(programmerId);
         programmer.setDateHired(LocalDate.of(2001,1,1));
 
         return programmer;

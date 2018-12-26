@@ -44,7 +44,7 @@ public class ProgrammerRepositoryTest {
         entityManager.persist(otherTeam);
         entityManager.flush();
 
-        List<Programmer> result = fixture.findAllByTeamId(team.getTeamId());
+        List<Programmer> result = fixture.findAllByTeamId(team.getId());
 
         assertEquals(team.getProgrammers().size(), result.size());
 

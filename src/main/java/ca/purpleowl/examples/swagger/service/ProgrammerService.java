@@ -100,11 +100,11 @@ public class ProgrammerService {
 
         ProgrammerAsset asset = new ProgrammerAsset();
         asset.setName(programmer.getName());
-        asset.setProgrammerId(programmer.getProgrammerId());
+        asset.setProgrammerId(programmer.getId());
         asset.setDateHired(DateTimeFormatter.ISO_LOCAL_DATE.format(programmer.getDateHired()));
 
         if(programmer.getTeam() != null) {
-            asset.setTeamId(programmer.getTeam().getTeamId());
+            asset.setTeamId(programmer.getTeam().getId());
             asset.setTeamName(programmer.getTeam().getName());
         }
 
