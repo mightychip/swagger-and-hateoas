@@ -18,7 +18,7 @@
     </description>
 
     <properties>
-        <java.version>11</java.version>
+        <java.version>8</java.version>
         <springfox.swagger.version>2.9.2</springfox.swagger.version>
     </properties>
 
@@ -86,6 +86,13 @@
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- This helps identify properties that are not actively being used so that they can be deleted. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <!-- Testing dependencies -->

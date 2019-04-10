@@ -1,3 +1,8 @@
+logging:
+  level:
+    root: INFO
+    ca.purpleowl.examples: TRACE
+
 server:
   port: 8085
 
@@ -11,9 +16,3 @@ spring:
     hibernate:
       ddl-auto: create-drop
     database: h2
-
-logging:
-  level:
-    root: INFO
-    ca.purpleowl.examples: TRACE
-
