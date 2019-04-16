@@ -1,6 +1,5 @@
 #!/usr/bin/env groovy
 
-@Library('jenkins-pipeline-announcers')_
 pipeline {
     agent any
     tools {
