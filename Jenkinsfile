@@ -20,10 +20,10 @@ pipeline {
             }
         }
 
-        stage ('Announce Status') {
-            steps {
-                slackAnnouncer(currentBuild.currentResult)
-            }
-        }
+//        stage ('Announce Status') {
+//            steps {
+//                slackAnnouncer(currentBuild.currentResult)
+//            }
+//        }
     }
 }
