@@ -19,11 +19,11 @@ pipeline {
                 sh 'mvn clean install'
             }
         }
-    }
 
-    post {
-        always {
-            slackAnnouncer(currentBuild.currentResult)
+        stage ('Announce Status') {
+            steps {
+                slackAnnouncer(currentBuild.currentResult)
+            }
         }
     }
 }
