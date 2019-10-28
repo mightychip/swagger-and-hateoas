@@ -1,4 +1,5 @@
 import jetbrains.buildServer.configs.kotlin.v2018_2.*
+import jetbrains.buildServer.configs.kotlin.v2018_2.buildSteps.MavenBuildStep
 import jetbrains.buildServer.configs.kotlin.v2018_2.buildSteps.maven
 import jetbrains.buildServer.configs.kotlin.v2018_2.triggers.vcs
 
@@ -40,8 +41,17 @@ object Build : BuildType({
 
     steps {
         maven {
+            name = "Run Tests"
             goals = "clean test"
             runnerArgs = "-Dmaven.test.failure.ignore=true"
+            localRepoScope = MavenBuildStep.RepositoryScope.BUILD_CONFIGURATION
+            jdkHome = "%env.JDK_11_x64%"
+        }
+        maven {
+            name = "Build"
+            goals = "install"
+            localRepoScope = MavenBuildStep.RepositoryScope.BUILD_CONFIGURATION
+            jdkHome = "%env.JDK_11_x64%"
         }
     }
 
